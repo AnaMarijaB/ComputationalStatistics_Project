@@ -1,4 +1,6 @@
-
+#################################################################
+# GAMMA - GLM
+#################################################################
 
 
 
@@ -12,8 +14,10 @@ set.seed(123)
 
 
 
-column_names <- c("ID", "CHOL", "SGLU", "HDL", "Y", "LOCATION", "AGE", "GENDER", "HHT", "WHT", "FRAME", "SBP", "DSP", "W", "H")
-data <- read.table("Dataset5.txt", header = FALSE, sep = "\t", col.names = column_names)
+
+data <- read.csv("Data/ful_data.csv")
+
+colnames(data)[colnames(data) == "GHB"] <- "Y"
 setIndex <- createDataPartition(data$Y, p = 0.7, list = FALSE)
 train_data <- data[setIndex, ]
 test_data <- data[-setIndex, ]

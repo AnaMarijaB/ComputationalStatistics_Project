@@ -59,7 +59,9 @@ input_na <- function(data, method){
   return(data)
 }
 
-data <- input_na(data, "mean")
+data <- input_na(data, "model")
+
+write.csv(data, "Data/ful_data.csv", row.names = FALSE)
 
 
 
@@ -105,6 +107,41 @@ ggplot(data, aes(x = 1, y = HDL)) +
 
 # Pairwise scatterplot matrix
 pairs(numeric_data)
+
+shape <- dim(data)
+n <- shape[1]
+m <- shape[2]
+
+
+par(mfrow=c(2,2))
+for (col in colnames(numeric_data)) {
+  hist(data[[col]], main=col, xlab="Value", col="lightblue", border="black")
+}
+
+
+
+
+
+low_threshold <- 0.3
+large_threshold <- 0.7
+
+
+low_correlations <- which(abs(correlation_matrix) < low_threshold & abs(correlation_matrix) > 0, arr.ind = TRUE)
+
+# Identify large correlations
+large_correlations <- which(abs(correlation_matrix) > large_threshold & abs(correlation_matrix) < 1, arr.ind = TRUE)
+
+# Print the results
+print("Low Correlations:")
+print(low_correlations)
+print("Large Correlations:")
+print(large_correlations)
+
+
+
+
+
+
 
 #################################
 # Chategorical variables
