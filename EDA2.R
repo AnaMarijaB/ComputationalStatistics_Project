@@ -8,9 +8,10 @@ library(kableExtra)
 library(corrplot)
 library(psych)
 library(tidyverse)
+library(fastDummies)
 
 column_names <- c("ID", "CHOL", "SGLU", "HDL", "GHB", "LOCATION", "AGE", "GENDER", "HHT", "WHT", "FRAME", "SBP", "DSP", "W", "H")
-data <- read.table("Dataset5.txt", header = FALSE, sep = "\t", col.names = column_names)
+data <- read.table("Data/Dataset5.txt", header = FALSE, sep = "\t", col.names = column_names)
 data <- data %>% select(-{'ID'})
 
 #################################
@@ -29,6 +30,8 @@ gender_summary <- data %>% group_by(GENDER) %>% summarise(count = n())
 location_summary <- data %>% group_by(LOCATION) %>% summarise(count = n())
 frame_summary <- data %>% group_by(FRAME) %>% summarise(count = n()) %>% mutate_all(~ifelse(. == "" | is.na(.), 'No value', .))
 
+
+
 separator_code <- "<hr style='border-top: 1px solid #000000;'>"
 
 combined_table <- cbind(
@@ -42,8 +45,6 @@ combined_table <- cbind(
 kable(combined_table, escape = FALSE, format = "html") %>%
   kable_styling(full_width = FALSE)
 
-#Kaj bomo naredili s primeri, ki so v stolpcu FRAME brez vrednosti?
-
 #################################
 # NUMERICAL VARIABLES
 #################################
@@ -55,8 +56,11 @@ numeric_data <- data[, num_vars]
 
 par(mfrow = c(ceiling(sqrt(ncol(numeric_data))), ceiling(sqrt(ncol(numeric_data)))))
 
+par(mfrow = c(4,3))
+
 for (col in names(numeric_data)) {
-  hist(numeric_data[[col]], main = paste("Histogram of", col), xlab = col, col = "lightblue", border = "black")
+  hist(numeric_data[[col]], probability = TRUE, main = paste("Histogram of", col), xlab = col, col = "lightblue", border = "black")
+  lines(density(numeric_data[[col]], na.rm = TRUE), col = "darkorange", lwd = 2)
 }
 
 # boxplots
@@ -71,19 +75,34 @@ ggplot(my_data_long, aes(x = "", y = value, fill = key)) +
   theme(strip.placement = "outside", strip.background = element_blank()) +
   guides(fill = FALSE)
 
+################################
+# outliers
+###############################
+
+outliers <- c('SBP', 'DSP', 'CHOL', 'HDL')
+
+data_out <- data %>%
+  mutate_at(
+    vars(outliers),
+    funs(if_else(
+      . < quantile(., 0.25, na.rm = TRUE) - 1.5 * IQR(., na.rm = TRUE) |
+        . > quantile(., 0.75, na.rm = TRUE) + 1.5 * IQR(., na.rm = TRUE),
+      quantile(., 0.5, na.rm = TRUE),
+      .
+    ))
+  )
+
 #################################
 # NA
 #################################
 
 col_na <- colnames(data)[colSums(is.na(data)) > 0]
-# only numerical variables has NA values 
 
-# ta del je treba še popravit, da bo izpisal tabelo s številom NA vrednosti v posamezni spremenljivki horizontalno
 na_sum <- colSums(is.na(numeric_data)) 
 kable(na_sum, format = "html", longtable = F) %>%
   kable_styling(full_width = FALSE)
 
-# insertamo vrednosti namesto na vrednosti
+# insertamo mean namesto NA vrednosti
 
 input_na <- function(data, method){
   if (method == "delete") {
@@ -115,7 +134,19 @@ input_na <- function(data, method){
   return(data)
 }
 
-numeric_data <- input_na(numeric_data, "mean")
+data_mvi <- input_na(data_out, "mean")
+
+################################
+# DATA ENCODING
+###############################
+
+data_encoded <- data_mvi %>% mutate(GENDER_num = if_else(GENDER == "female", 1, 0), 
+                                LOCATION_num = if_else(LOCATION == "Buckingham", 1, 0),
+                                FRAME = if_else(FRAME == "", 'medium', FRAME))
+data_encoded <- dummy_cols(data_encoded, select_columns = "FRAME", remove_selected_columns = TRUE)
+data_encoded <- data_encoded %>% select(-c('FRAME_small', 'GENDER', 'LOCATION'))
+
+data_encoded <- data_encoded %>% mutate(BMI = (W / (H ^2))*703)
 
 #################################
 # CORRELATION ANALYSIS
@@ -123,7 +154,7 @@ numeric_data <- input_na(numeric_data, "mean")
 
 # correlation matrix
 
-corrplot(cor(numeric_data), type = "upper", order = "hclust", 
+corrplot(cor(data_encoded), type = "upper", order = "hclust", 
          tl.col = "black", tl.srt = 45)
 
 # scatterplots + correlation coef
@@ -135,7 +166,11 @@ pairs.panels(numeric_data,
              ellipses = TRUE # show correlation ellipses
 )
 
+###############################
+# SAVING PREPARED DATA
+##############################
 
+write.csv(data_encoded, "Data/data_encoded.csv", row.names = TRUE)
 
 
 

@@ -24,11 +24,16 @@ test_data <- data[-setIndex, ]
 
 
 model <- glm(Y ~., data = train_data, family = "Gamma")
+summary(model)
+
+confint(model)
 
 
 predictions <- as.matrix(predict(model, newdata = test_data))
+pred <- predict(model, newdata = test_data)
+residuals <- residuals(model, type = 'deviance')
 
-summary(model)
+plot(predictions, residuals)
 
 
 mse <- mean((test_data$Y - predictions)^2)

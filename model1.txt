@@ -1,0 +1,16 @@
+model
+model
+{
+  for (i in 1:m) {
+    Y[i] ~ dgamma(a1[i], a2[i])
+    a1[i] <- phi
+    a2[i] <- phi / mu[i]
+    mu[i] <- inprod(x[i, ], beta[])
+  }
+
+  precision_matrix[1:p, 1:p] <- inverse(0.001 * diag(p))
+  beta[1:p] ~ dmnorm(zero_vector(p), precision_matrix)
+
+  phiinv ~ dgamma(0.001, 0.001)
+  phi <- 1 / phiinv
+}
