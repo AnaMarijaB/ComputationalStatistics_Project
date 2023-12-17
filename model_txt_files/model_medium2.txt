@@ -1,0 +1,9 @@
+model
+{
+  for (i in 1:n) {
+    Y[i] ~ dgamma(alpha, 1/beta)
+  }
+  alpha ~ dgamma(2, 1)
+  beta ~ dgamma(2, 1)
+}
+

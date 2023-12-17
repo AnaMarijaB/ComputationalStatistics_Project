@@ -1,0 +1,15 @@
+model
+{
+  for (i in 1:n) {
+    Y[i] ~ dgamma(mu[i], sg[i])
+    mu[i] <- inprod(x[i, ], beta[])
+    sg[i] <- 1/alpha
+  }
+  
+  precision_matrix[1:p, 1:p] <- inverse(0.001 * I)  # Assuming p is the dimension of beta
+  beta[1:p] ~ dmnorm(rep(0, p), precision_matrix)
+  
+  alpha ~ dgamma(2, 1)
+
+}
+
