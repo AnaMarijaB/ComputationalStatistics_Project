@@ -198,7 +198,59 @@ gghistplot <- ggplot() +
   scale_fill_manual(values = c("Fitted model distribution" = "cadetblue", "Data histogram" = "darkorange"), guide = guide_legend(title = "")) +
   theme(legend.position = "bottom") 
 
+
+
 ##################################
 # Saving final data
 ##################################
+
 write.csv(data_new, "Data/data_final.csv", row.names = TRUE)
+
+
+##################################
+# Interpretation
+##################################
+
+# scale
+inter_data <- data_new
+Y <- inter_data$GHB
+inter_data <- as.data.frame(scale(inter_data))
+inter_data$GHB <- Y
+summary(inter_data)
+
+model_stand <- glm(GHB ~ CHOL + SGLU + AGE + W, data = inter_data, family = Gamma(link = link_fun))
+print(model_stand$coefficients)
+
+
+# Create 3D scatter plot
+library(scatterplot3d)
+
+# true
+data_new$color <- ifelse(data_new$GHB > 7, "red", "skyblue")
+scatterplot3d(
+  data_new$CHOL, data_new$SGLU, data_new$AGE,
+  color = data_new$color,
+  main = "3D Plot of diagnosis of diabetes (true)",
+  pch = 16,
+  xlab = "CHOL",
+  ylab = "SLGU",
+  zlab = "AGE"
+)
+legend("topleft", legend = c("GHB > 7", "GHB <= 7"), col = c("red", "skyblue"), pch = 16, bty = "n")
+
+# pred
+newGHB <- predict(model, newdata = data_new, type = "response")
+data_new$GHB <- newGHB
+data_new$color1 <- ifelse(data_new$GHB > 7, "red", "skyblue")
+# Create 3D scatter plot
+scatterplot3d(
+  data_new$CHOL, data_new$SGLU, data_new$AGE,
+  color = data_new$color1,
+  main = "3D Plot of diagnosis of diabetes (prediction)",
+  pch = 16,
+  xlab = "CHOL",
+  ylab = "SLGU",
+  zlab = "AGE"
+)
+legend("topleft", legend = c("GHB > 7", "GHB <= 7"), col = c("red", "skyblue"), pch = 16, bty = "n")
+
