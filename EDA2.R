@@ -75,23 +75,6 @@ ggplot(my_data_long, aes(x = "", y = value, fill = key)) +
   theme(strip.placement = "outside", strip.background = element_blank()) +
   guides(fill = FALSE)
 
-################################
-# outliers
-###############################
-
-outliers <- c('SBP', 'DSP', 'CHOL', 'HDL')
-
-data_out <- data %>%
-  mutate_at(
-    vars(outliers),
-    funs(if_else(
-      . < quantile(., 0.25, na.rm = TRUE) - 1.5 * IQR(., na.rm = TRUE) |
-        . > quantile(., 0.75, na.rm = TRUE) + 1.5 * IQR(., na.rm = TRUE),
-      quantile(., 0.5, na.rm = TRUE),
-      .
-    ))
-  )
-
 #################################
 # NA
 #################################
@@ -101,6 +84,9 @@ col_na <- colnames(data)[colSums(is.na(data)) > 0]
 na_sum <- colSums(is.na(numeric_data)) 
 kable(na_sum, format = "html", longtable = F) %>%
   kable_styling(full_width = FALSE)
+
+na_rows <- which(rowSums(is.na(data)) > 0)
+na_data <- data[na_rows,]
 
 # insertamo mean namesto NA vrednosti
 
@@ -134,13 +120,13 @@ input_na <- function(data, method){
   return(data)
 }
 
-data_mvi <- input_na(data_out, "mean")
+data_mvi <- input_na(data, "mean")
 
 ################################
 # DATA ENCODING
 ###############################
 
-data_encoded <- data_mvi %>% mutate(GENDER_num = if_else(GENDER == "female", 1, 0), 
+data_encoded <- data_out %>% mutate(GENDER_num = if_else(GENDER == "female", 1, 0), 
                                 LOCATION_num = if_else(LOCATION == "Buckingham", 1, 0),
                                 FRAME = if_else(FRAME == "", 'medium', FRAME))
 data_encoded <- dummy_cols(data_encoded, select_columns = "FRAME", remove_selected_columns = TRUE)
@@ -149,17 +135,12 @@ data_encoded <- data_encoded %>% select(-c('FRAME_small', 'GENDER', 'LOCATION'))
 data_encoded <- data_encoded %>% mutate(BMI = (W / (H ^2))*703)
 
 #################################
-# CORRELATION ANALYSIS
+# CORRELATION 
 #################################
-
-# correlation matrix
-
-corrplot(cor(data_encoded), type = "upper", order = "hclust", 
-         tl.col = "black", tl.srt = 45)
 
 # scatterplots + correlation coef
 
-pairs.panels(numeric_data, 
+pairs.panels(data_encoded, 
              method = "pearson", # correlation method
              hist.col = "#00AFBB",
              density = TRUE,  # show density plots

@@ -1,7 +1,7 @@
 model
 {
   for (i in 1:n) {
-    log(mu[i]) ~ dnorm(inprod(x[i, ], beta[]))  # Assuming beta[] is a row vector
+    log(mu[i]) <- inprod(x[i, ], beta[])  # Assuming beta[] is a row vector
     Y[i] ~ dgamma(a1[i], a2[i])
     a1[i] <- phi
     a2[i] <- phi / mu[i]
@@ -13,4 +13,3 @@ model
   phiinv ~ dgamma(0.001, 0.001)
   phi <- 1 / phiinv
 }
-

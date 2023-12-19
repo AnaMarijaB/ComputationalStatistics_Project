@@ -13,8 +13,7 @@ i <- createDataPartition(data$GHB, p = 0.8, list = FALSE)
 # to check performance of GLM
 train <- data[i, ]
 test <- data[-i, ]
-link_fun <-"log" # we can also use inverse
-
+link_fun <-"log"
 
 #################################################################
 # Full data GLM performance
@@ -26,11 +25,6 @@ pred <- predict(glmFull, newdata = test, type = "response")
 mse <- mean((pred - test$GHB)^2)
 AIC_value <- AIC(glmFull)
 BIC_value <- BIC(glmFull)
-
-
-
-
-
 
 #################################################################
 # 1. Coefficient Magnitude
@@ -49,14 +43,10 @@ mseCoef <- mean((predCoef - test_coef$GHB)^2)
 AIC_value_coef <- AIC(glmCoef)
 BIC_value_coef <- BIC(glmCoef)
 
-
-
-
-
-
 #################################################################
 # 2. P-values
 #################################################################
+
 p_values <- summary(glmFull)$coefficients[, 4]
 p_values <- p_values[-1]
 top5_p_values <- names(head(sort(p_values), 5))
@@ -70,9 +60,6 @@ predPvalue <- predict(glmPvalue, newdata = test_p_values, type = "response")
 msePvalue <- mean((predPvalue - test_p_values$GHB)^2)
 AIC_value_Pvalue <- AIC(glmPvalue)
 BIC_value_Pvalue <- BIC(glmPvalue)
-
-
-
 
 #################################################################
 # 3. Confidence Intervals
@@ -96,10 +83,6 @@ mseConf <- mean((predConf - test_significant$GHB)^2)
 AIC_value_Conf <- AIC(glmConf)
 BIC_value_Conf <- BIC(glmConf)
 
-
-
-
-
 #################################################################
 # 4. Deviance & Chi-squared tests
 #################################################################
@@ -118,12 +101,8 @@ glm_chi2 <- glm(GHB ~ ., data = train_chi2, family = Gamma(link = link_fun))
 pred_chi2 <- predict(glm_chi2, newdata = test_chi2, type = "response")
 # Results:
 mse_chi2 <- mean((pred_chi2 - test_chi2$GHB)^2)
-# 5.574019
 AIC_chi2 <- AIC(glm_chi2)
-# 1240.586
 BIC_chi2 <- BIC(glm_chi2)
-# 1266.832
-
 
 #################################################################
 # EDA based
@@ -137,13 +116,8 @@ glm_reduce <- glm(GHB ~ CHOL + SGLU + AGE + W, data = train_eda, family = Gamma(
 pred_eda <- predict(glm_reduce, newdata = test_eda, type = "response")
 # Results:
 mse_eda <- mean((pred_eda - test_eda$GHB)^2)
-# 2.299131
 AIC_eda <- AIC(glm_reduce)
-# 968.1561
 BIC_eda <- BIC(glm_reduce)
-# 990.6524
-
-
 
 #############################################################################################
 #############################################################################################
@@ -189,18 +163,22 @@ results_df[6, "BIC"] <- BIC_eda
 # Print the results data frame
 print(results_df)
 
-
-
 # Define which model you want to use in next steps
 data_new <- data[eda_col]
 model <- glm(GHB ~ CHOL + SGLU + AGE + W, data = data_new, family = Gamma(link = link_fun))
 
+summary(model)
 
+par(mfrow = c(2, 2))
+plot(model, which = 1)  # Residuals vs. Fitted values
+plot(model, which = 2)  # Normal Q-Q plot of residuals
+plot(model, which = 3)  # Scale-Location plot
+plot(model, which = 5)  # Cook's distance plot
 
-#################################################################
-# Testing 
-#################################################################
-
+cooksd <- cooks.distance(model)
+influential_observations <- which(cooksd > 0.05)
+influential_rows <- data[influential_observations, ]
+print(influential_rows)
 
 #################################
 # Distribution check
@@ -216,79 +194,11 @@ df_data <- data.frame(x = data_new$GHB)
 gghistplot <- ggplot() +
   geom_density(data = df_gamma, aes(x = x, y = stat(density), fill = "Fitted model distribution"), alpha = 0.7) +
   geom_histogram(data = df_data, aes(x = x, y = stat(density), fill = "Data histogram"), alpha = 0.7, binwidth = 0.5) +
-  labs(title = "Fitted model distribution vs data histogram", x = "GHB", y = "Relative frequency") +
-  scale_fill_manual(values = c("Fitted model distribution" = "lightblue", "Data histogram" = "seagreen2"), guide = guide_legend(title = "Legend"))
-ggsave("GLM_figures/gghistplot.png", plot = gghistplot)
+  labs(title = "", x = "GHB", y = "Relative frequency") +
+  scale_fill_manual(values = c("Fitted model distribution" = "cadetblue", "Data histogram" = "darkorange"), guide = guide_legend(title = "")) +
+  theme(legend.position = "bottom") 
 
-
-#################################
-# Residuals Distribution 
-#################################
-
-residuals <- residuals(model)
-plot(residuals)
-# looks okay, only a few outliers
-pdf("GLM_figures/residuals.pdf")
-plot(residuals)
-dev.off()
-
-hist(resid(model), main = "Residuals Distribution", col = "lightblue", border = "black")
-# Look for a symmetric and approximately normal distribution
-pdf("GLM_figures/Residuals_Distribution.pdf")
-hist(resid(model), main = "Residuals Distribution", col = "lightblue", border = "black")
-dev.off()
-
-
-
-#################################
-#  Influence Plots
-#################################
-
-plot(model, which = 3)  
-# Spread-Location Plot: Look for a horizontal line
-pdf("GLM_figures/Spread_Location.pdf")
-plot(model, which = 3)  
-dev.off()
-
-plot(model, which = 4)
-# Cook's Distance: A rule of thumb is that values greater than 4/length(residuals) might be influentia
-pdf("GLM_figures/Cooks_Distance.pdf")
-plot(model, which = 4)
-dev.off()
-
-#################################
-#  Quantile-Quantile (Q-Q) Plot
-#################################
-
-qqnorm(resid(model))
-qqline(resid(model))
-# Points along a straight line indicate normality
-pdf("GLM_figures/QQ.pdf")
-qqnorm(resid(model))
-qqline(resid(model))
-dev.off()
-
-
-#################################################################
-# Outliers
-#################################################################
-
-residuals <- residuals(model, type = "pearson") / sqrt(model$deviance / model$df.residual)
-abs_residuals <- abs(residuals)
-
-# Set a threshold for identifying outliers (e.g., 2 or 3 standard deviations)
-threshold <- 2
-outliers <- which(abs_residuals > threshold)
-
-rows_to_remove <- outliers
-data_new <- data_new[-rows_to_remove, ]
-
-
-
-#################################################################
-#################################################################
-
-write.csv(data_new, "Data/data_reduce.csv", row.names = FALSE)
-
-#################################################################
-#################################################################
+##################################
+# Saving final data
+##################################
+write.csv(data_new, "Data/data_final.csv", row.names = TRUE)
