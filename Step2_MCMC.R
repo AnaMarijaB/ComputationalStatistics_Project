@@ -5,14 +5,14 @@
 library(dplyr)
 library(R2jags)
 
-n_iter <- 20000
-n_burnout <- 10000
+n_iter <- 50000
+n_burnout <- 5000
 
 data_mcmc <- read.csv("Data/data_final.csv", header = TRUE)
 data_mcmc <- data_mcmc %>% select(-{'X'})
-data_mcmc$beta0 <- 1
+data_mcmc$delta0 <- 1
 data_mcmc <- data_mcmc %>%
-  select(beta0, everything())
+ select(delta0, everything())
 p <- ncol(data_mcmc)-1
 
 model_data <- list(
@@ -25,8 +25,8 @@ model_data <- list(
 
 # MODEL 1
 
-model_params1 <- c("beta","phi","phiinv")
-model_Inits1 <- list(beta = rep(0, p), phiinv = 1)
+model_params1 <- c("delta","alpha","alphainv")
+model_Inits1 <- list(delta = rep(0, p), alphainv = 1)
 
 model_jags1 <- jags(data=model_data, 
                    inits=list(model_Inits1), 
@@ -40,14 +40,18 @@ model_jags1 <- jags(data=model_data,
 print(model_jags1)
 chain1 <- as.mcmc(model_jags1)
 
-par(mfrow=c(8,1))
-traceplot(chain1,col="blue",sub="chain 1")
+important <- chain1[, c('delta[1]', 'delta[2]','delta[3]', 'delta[4]','delta[5]', 'alpha')]
+par(mfrow=c(6,1))
+traceplot(important,col="blue",sub="")
+
+geweke.diag(chain1, frac1 = 0.1, frac2 = 0.5)
+heidel.diag(chain1)
 HPDinterval(chain1,prob=0.95)
 
 # MODEL 2
 
-model_params2 <- c("beta","phi","phiinv")
-model_Inits2 <- list(beta = rep(0, p), phiinv = 1)
+model_params2 <- c("delta","alpha","alphainv")
+model_Inits2 <- list(delta = rep(0, p), alphainv = 1)
 
 model_jags2 <- jags(data=model_data, 
                    inits=list(model_Inits2), 
@@ -61,12 +65,13 @@ model_jags2 <- jags(data=model_data,
 print(model_jags2)
 chain2 <- as.mcmc(model_jags2)
 
-par(mfrow=c(2,1))
-traceplot(chain2,col="blue",sub="chain 1")
+important2 <- chain2[, c('delta[1]', 'delta[2]','delta[3]', 'delta[4]','delta[5]', 'alpha')]
+par(mfrow=c(6,1))
+traceplot(important2,col="blue",sub="")
+
+geweke.diag(chain2, frac1 = 0.1, frac2 = 0.5)
+heidel.diag(chain2)
 HPDinterval(chain2,prob=0.95)
-
-
-
 
 
 
